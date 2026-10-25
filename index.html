@@ -50,7 +50,10 @@ h3.t{font-size:26px;margin:0 0 6px;text-align:center}.lead{color:var(--muted);te
 .steps h4{margin:0 0 4px}.steps p{margin:0;color:var(--muted);font-size:14px}
 details{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:10px}
 summary{cursor:pointer;font-weight:600}details p{color:var(--muted);margin:8px 0 0;font-size:14px}
-footer{border-top:1px solid var(--border);padding:22px 0;text-align:center;color:var(--muted);font-size:13px}
+footer{border-top:1px solid var(--border);padding:22px 0;text-align:center;color:var(--muted);font-size:13px}.locbtn{width:100%;background:var(--bg);color:var(--brand);border:1px solid var(--brand);border-radius:8px;padding:9px;font:inherit;font-weight:600;cursor:pointer;margin-bottom:4px}
+.locbtn:hover{background:var(--alt)}
+.locstatus{font-size:12px;color:var(--muted);min-height:16px}
+
 </style>
 </head>
 <body>
@@ -74,9 +77,16 @@ footer{border-top:1px solid var(--border);padding:22px 0;text-align:center;color
 <div class="f"><label for="n">Full name</label><input id="n" type="text" autocomplete="name"><div class="err">Enter your full name.</div></div>
 <div class="f"><label for="p">Mobile number</label><input id="p" type="tel" inputmode="numeric" maxlength="10" placeholder="10-digit number" autocomplete="tel-national"><div class="err">Enter a valid 10-digit mobile number.</div></div>
 <div class="f"><label for="e">Email</label><input id="e" type="email" autocomplete="email"><div class="err">Enter a valid email.</div></div>
+<div class="f"><label for="addr">House / street / area</label><input id="addr" type="text" autocomplete="street-address"><div class="err">Enter your address.</div></div>
 <div class="row">
+<div class="f"><label for="city">City</label><input id="city" type="text" autocomplete="address-level2"><div class="err">Enter your city.</div></div>
 <div class="f"><label for="z">Pincode</label><input id="z" type="text" inputmode="numeric" maxlength="6" autocomplete="postal-code"><div class="err">6-digit pincode.</div></div>
+</div>
 <div class="f"><label for="b">Monthly bill (₹)</label><input id="b" type="number" min="0" step="100"><div class="err">Enter your bill.</div></div>
+<div class="f">
+<button type="button" id="locBtn" class="locbtn">📍 Use my current location (optional)</button>
+<div id="locStatus" class="locstatus"></div>
+<input type="hidden" id="lat"><input type="hidden" id="lng">
 </div>
 <label class="chk"><input type="checkbox" id="t"><span>I agree to the terms &amp; conditions and to be contacted about my inquiry.</span></label>
 <div class="err" id="terr" style="margin:-8px 0 8px">Please accept the terms to continue.</div>
@@ -119,13 +129,37 @@ footer{border-top:1px solid var(--border);padding:22px 0;text-align:center;color
 (function(){
 var $=function(i){return document.getElementById(i)};
 function bad(el,on){var e=el.parentNode.querySelector('.err');if(e)e.style.display=on?'block':'none';el.style.borderColor=on?'#dc2626':'';}
+
+// Optional "use my location" button - only runs with the visitor's explicit
+// browser permission, and only fills the lat/lng fields (nothing is sent
+// anywhere until the visitor submits the form themselves).
+var locBtn=$('locBtn'),locStatus=$('locStatus');
+if(locBtn){
+locBtn.addEventListener('click',function(){
+if(!navigator.geolocation){
+locStatus.textContent='Location is not supported by this browser.';
+return;
+}
+locStatus.textContent='Requesting location permission…';
+navigator.geolocation.getCurrentPosition(function(pos){
+$('lat').value=pos.coords.latitude.toFixed(6);
+$('lng').value=pos.coords.longitude.toFixed(6);
+locStatus.textContent='Location captured ✓ (helps us find the nearest survey team)';
+},function(err){
+locStatus.textContent='Location permission denied or unavailable. You can still submit using your address.';
+});
+});
+}
+
 $('f').addEventListener('submit',function(ev){
 ev.preventDefault();
-var n=$('n'),p=$('p'),e=$('e'),z=$('z'),b=$('b'),t=$('t');
+var n=$('n'),p=$('p'),e=$('e'),addr=$('addr'),city=$('city'),z=$('z'),b=$('b'),t=$('t');
 var v=[
 [n,n.value.trim().length>1],
 [p,/^[6-9]\d{9}$/.test(p.value)],
 [e,/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e.value)],
+[addr,addr.value.trim().length>3],
+[city,city.value.trim().length>1],
 [z,/^\d{6}$/.test(z.value)],
 [b,parseFloat(b.value)>0]
 ];
@@ -134,9 +168,10 @@ $('terr').style.display=t.checked?'none':'block';if(!t.checked)ok=false;
 if(!ok)return;
 var seg=document.querySelector('input[name=seg]:checked').value;
 $('formBox').style.display='none';$('ok').style.display='block';
-$('okt').textContent='Thanks, '+n.value.trim().split(' ')[0]+'. Our '+seg.toLowerCase()+' solar team will call you on '+p.value+' shortly.';
+$('okt').textContent='Thanks, '+n.value.trim().split(' ')[0]+'. Our '+seg.toLowerCase()+' solar team will check installations near '+city.value.trim()+' and call you on '+p.value+' to schedule a site visit.';
 });
 })();
+
 </script>
 </body>
 </html>
